@@ -1,45 +1,89 @@
-# **Network Traffic Analyzer for Home Security**
+# Network Traffic Analyzer for Home Security
 
-## **Overview**
+## Overview
 
-This project is a home network security monitoring system designed to detect suspicious activities in real-time. It analyzes network traffic, identifies connected devices, flags potential vulnerabilities or compromises, and visualizes communication patterns on an interactive web dashboard. The goal is to provide homeowners with insights into their network's behavior and alert them to potential threats.
+The **Network Traffic Analyzer for Home Security** is a real-time network monitoring and security analysis system designed for home and small networks.  
+It continuously observes network traffic, identifies connected devices, detects insecure or suspicious behavior, and presents insights through an interactive web dashboard.
 
-## **Core Features**
+The primary goal of this project is to **increase visibility into home network activity** and **alert users to potential security risks**, such as insecure protocols, compromised devices, or abnormal communication patterns.
 
-This system integrates several layers of analysis to provide comprehensive monitoring:
+---
 
-1. **Real-time Packet Capture:**  
-   * **Explanation:** Uses the scapy library to capture network packets directly from specified network interfaces (e.g., main Wi-Fi, hotspot).  
-   * **Need:** This is the fundamental data source. Without capturing packets, no analysis is possible.  
-2. **Device Fingerprinting (MAC/OUI & DHCP):**  
-   * **Explanation:** Identifies devices on the network by their unique MAC address. It looks up the manufacturer using the OUI (first half of the MAC) and captures the device's self-assigned hostname (e.g., "Sams-iPhone", "LivingRoom-TV") from DHCP requests.  
-   * **Need:** Knowing *what* devices are on the network provides crucial context for alerts. A suspicious connection from a known computer is different from the same connection coming from a smart plug.  
-3. **Insecure Protocol Detection (CRITICAL Alerts):**  
-   * **Explanation:** Actively monitors for traffic using inherently insecure protocols like Telnet, FTP, rlogin, rsh, and unencrypted MQTT.  z
-   * **Need:** Usage of these protocols, especially by IoT devices, indicates a significant vulnerability that could be easily exploited. This directly addresses the "flag insecure IoT devices" objective.  
-4. **Suspicious Port Detection (HIGH Alerts):**  
-   * **Explanation:** Flags outbound connections to ports commonly associated with malicious activity or services that shouldn't typically originate from a home device (e.g., SSH, RDP, IRC, common malware backdoor ports).  
-   * **Need:** This helps detect potentially compromised devices that might be trying to connect to botnet command-and-control servers, attempting to spread laterally, or being remotely accessed.  
-5. **Connection Baselining (NORMAL Alerts):**  
-   * **Explanation:** Creates a profile for each known device, recording every unique connection (Destination IP \+ Port \+ Protocol) it makes. The *first* time a new, previously unseen connection is detected, a "NORMAL" alert is generated.  
-   * **Need:** While not inherently malicious, tracking new connections provides visibility into device behavior changes. It helps establish what's "normal" for each device over time.  
-6. **DNS Monitoring & Threat Intelligence (CRITICAL Alerts):**  
-   * **Explanation:** Captures DNS queries (UDP Port 53\) to see which domain names devices are trying to resolve. It checks these domains against a configurable blocklist of known malicious sites.  
-   * **Need:** Malware often uses domain names, not fixed IPs. Detecting attempts to contact known malicious domains is a highly effective way to catch compromised devices early, often before they establish a harmful connection.  
-7. **Interactive Dashboard (Plotly Dash):**  
-   * **Explanation:** A web-based user interface providing multiple views of the network data:  
-     * **Network Map:** Visualizes devices (using icons/hostnames) and their connections (color-coded by alert severity).  
-     * **Security Alerts:** Lists all generated alerts (CRITICAL, HIGH, NORMAL), color-coded and filterable by severity, with pop-up notifications for new high-priority alerts.  
-     * **Discovered Devices:** Shows all identified devices with their MAC, Hostname, Manufacturer, and activity timestamps.  
-     * **DNS Logs:** A live feed of all observed DNS queries.  
-     * **Live Traffic:** A raw log of captured network packets.  
-   * **Need:** Makes the complex network data accessible and understandable, allowing users to quickly assess the network's status and investigate alerts.
+## Key Capabilities
 
-## **How it Works (Architecture)**
+This system combines packet-level inspection, behavioral analysis, and visualization to provide layered network security monitoring.
 
-1. **Sensors (sensor\_\*.py):** Two Python scripts run using scapy to capture packets on different network interfaces (e.g., main Wi-Fi and a hotspot). They perform initial packet dissection (DHCP, DNS, TCP/UDP).  
-2. **Analysis & Database (sqlite3):** The sensors analyze packet details, compare against known patterns (ports, DNS blocklist, scan behavior), update device profiles, and log alerts and DNS queries into a central sentinel.db SQLite database.  
-3. **Dashboard (dashboard\_\*.py):** A Plotly Dash web application runs independently. It periodically queries the sentinel.db database and updates the tables and network map displayed in the user's web browser.
+### 🔍1. Real-Time Packet Capture
+- Captures live network packets using the `scapy` library from one or more network interfaces (e.g., home Wi-Fi, mobile hotspot).
+- Packet capture acts as the foundational data source for all further analysis.
+
+
+### 🖥️2. Device Discovery & Fingerprinting
+- Identifies devices using:
+  - MAC addresses
+  - OUI-based manufacturer lookup
+  - Hostnames extracted from DHCP traffic
+- Helps distinguish between trusted devices, unknown devices, and IoT endpoints.
+
+
+### 🔐3. Insecure Protocol Detection (**CRITICAL Alerts**)
+- Detects use of insecure and unencrypted protocols such as:
+  - Telnet
+  - FTP
+  - rlogin / rsh
+  - Unencrypted MQTT
+- These protocols expose credentials and data in plaintext and represent serious security risks.
+
+
+### ⚠️4. Suspicious Port Activity Detection (**HIGH Alerts**)
+- Flags outbound connections to ports commonly associated with:
+  - Remote access services (SSH, RDP)
+  - Malware command-and-control channels
+  - Backdoors or lateral movement
+- Helps identify potentially compromised devices.
+
+
+### 📈5. Connection Baselining (**NORMAL Alerts**)
+- Builds a behavioral baseline for each device by tracking unique connections:
+  - Destination IP
+  - Destination port
+  - Protocol
+- New or previously unseen connections are logged to highlight behavioral changes.
+
+
+### 🌐6. DNS Monitoring & Threat Intelligence (**CRITICAL Alerts**)
+- Monitors DNS queries in real time.
+- Compares queried domains against a configurable malicious-domain blocklist.
+- Effective at detecting malware that relies on domain-based communication.
+
+
+### 📊7. Interactive Web Dashboard
+Built using **Plotly Dash**, the dashboard provides:
+
+- **Network Map:** Visual graph of device communication, color-coded by severity
+- **Security Alerts:** Filterable alerts (CRITICAL, HIGH, NORMAL)
+- **Discovered Devices:** Inventory of detected devices with metadata
+- **DNS Logs:** Live DNS query feed
+- **Live Traffic:** Raw packet-level traffic log
+
+---
+
+## System Architecture
+
+1. **Packet Sensors (`sensor_*.py`)**
+   - Capture packets from multiple network interfaces
+   - Perform initial protocol parsing (DHCP, DNS, TCP, UDP)
+
+2. **Analysis & Storage (SQLite)**
+   - Analyze traffic patterns
+   - Update device profiles
+   - Store alerts and DNS logs in `sentinel.db`
+
+3. **Dashboard (`dashboard_*.py`)**
+   - Periodically queries the database
+   - Updates tables and visualizations in real time
+
+---
 
 ## **Setup & Running**
 
@@ -57,6 +101,72 @@ This system integrates several layers of analysis to provide comprehensive monit
    * Open **Terminal 2 (Admin):** python sensor\_hotspot.py  
    * Open **Terminal 3 (Normal):** python dashboard\_vX\_Y.py (use your latest dashboard file)  
 5. **Access Dashboard:** Open http://127.0.0.1:8050 in your web browser.
+
+---
+
+## 📸 Dashboard Screenshots
+
+The following screenshots showcase the real-time monitoring, alerting, and visualization
+capabilities of the **Network Traffic Analyzer**.
+
+---
+
+### 🚨 Security Alerts – Critical Events
+
+Detects insecure protocols and high-risk behavior in real time.
+
+![Critical Security Alerts](screenshots/critical_security_alerts.png)
+
+---
+
+### ⚠️ Security Alerts – High Severity
+
+Flags suspicious outbound connections and abnormal service usage.
+
+![High Security Alerts](screenshots/high_security_alerts.png)
+
+---
+
+### 📋 All Security Alerts (Filtered & Sorted)
+
+Unified alert view with severity-based filtering and newest-first ordering.
+
+![Security Alerts](screenshots/security_alerts.png)
+
+---
+
+### 🧠 Discovered Network Devices
+
+Automatically identifies devices using MAC address, hostname, and manufacturer lookup.
+
+![Discovered Devices](screenshots/discovered_devices.png)
+
+---
+
+### 🗺️ Live Device Communication Map
+
+Interactive graph visualizing device-to-destination communication,
+color-coded by alert severity.
+
+![Live Device Communication Map](screenshots/live_device_com_map.png)
+
+---
+
+### 🌐 Live DNS Query Log
+
+Monitors DNS requests in real time to detect communication with suspicious or malicious domains.
+
+![Live DNS Query Log](screenshots/live_dns_query_log.png)
+
+---
+
+### 📡 Real-Time Network Traffic Log
+
+Low-level packet visibility including protocol, source, destination, and ports.
+
+![Live Network Traffic](screenshots/live_traffic.png)
+
+---
 
 ## **Future Improvements**
 
